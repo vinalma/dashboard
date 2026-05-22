@@ -276,25 +276,47 @@ function PostItCard({ card, colorDef, selected, onMouseDown, onOpen, onDelete, o
 function ConnectionLine({ from, to, tasks, color }) {
   const t1 = tasks.find(t=>t.id===from), t2 = tasks.find(t=>t.id===to);
   if (!t1||!t2) return null;
-  const x1=t1.x+(t1.w||240), y1=t1.y+(t1.h||130)/2; // Right edge of source
-  const x2=t2.x, y2=t2.y+(t2.h||130)/2;             // Left edge of target
-  const dx=Math.abs(x2-x1);
-  const cx1=x1+Math.max(dx/2, 40);
-  const cx2=x2-Math.max(dx/2, 40);
+  const t1x = t1.x + (t1.w||240)/2, t1y = t1.y + (t1.h||130)/2;
+  const t2x = t2.x + (t2.w||240)/2, t2y = t2.y + (t2.h||130)/2;
+  const dx = t2x - t1x, dy = t2y - t1y;
+  
+  let x1, y1, x2, y2, cx1, cy1, cx2, cy2;
+  if (Math.abs(dx) > Math.abs(dy)) {
+    // Horizontal connection
+    if (dx > 0) { x1 = t1.x + (t1.w||240); y1 = t1y; x2 = t2.x; y2 = t2y; }
+    else { x1 = t1.x; y1 = t1y; x2 = t2.x + (t2.w||240); y2 = t2y; }
+    const cDist = Math.max(Math.abs(x2 - x1) / 2, 40);
+    cx1 = x1 + (dx > 0 ? cDist : -cDist); cy1 = y1;
+    cx2 = x2 + (dx > 0 ? -cDist : cDist); cy2 = y2;
+  } else {
+    // Vertical connection
+    if (dy > 0) { x1 = t1x; y1 = t1.y + (t1.h||130); x2 = t2x; y2 = t2.y; }
+    else { x1 = t1x; y1 = t1.y; x2 = t2x; y2 = t2.y + (t2.h||130); }
+    const cDist = Math.max(Math.abs(y2 - y1) / 2, 40);
+    cx1 = x1; cy1 = y1 + (dy > 0 ? cDist : -cDist);
+    cx2 = x2; cy2 = y2 + (dy > 0 ? -cDist : cDist);
+  }
+
   return (
     <g>
-      <path d={`M${x1} ${y1} C${cx1} ${y1},${cx2} ${y2},${x2} ${y2}`} stroke={color} strokeWidth="2.5" fill="none" strokeDasharray="7 5" opacity="0.5"/>
+      <path d={`M${x1} ${y1} C${cx1} ${cy1},${cx2} ${cy2},${x2} ${y2}`} stroke={color} strokeWidth="2.5" fill="none" strokeDasharray="7 5" opacity="0.5"/>
       <circle cx={x2} cy={y2} r="5" fill={color} opacity="0.6"/>
     </g>
   );
 }
 
-function ConnectionHandle({ onConnStart, color }) {
+function ConnectionHandle({ side, onConnStart, color }) {
+  const styles = {
+    top: { top: -10, left: "50%", transform: "translateX(-50%)" },
+    bottom: { bottom: -10, left: "50%", transform: "translateX(-50%)" },
+    left: { left: -10, top: "50%", transform: "translateY(-50%)" },
+    right: { right: -10, top: "50%", transform: "translateY(-50%)" },
+  };
   return (
     <div
-      onMouseDown={onConnStart}
+      onMouseDown={(e)=>onConnStart(e)}
       style={{
-        position:"absolute", right:-10, top:"50%", transform:"translateY(-50%)",
+        position:"absolute", ...styles[side],
         width:20, height:20, borderRadius:"50%", background:color,
         border:"3.5px solid #fff", cursor:"crosshair", zIndex:20,
         boxShadow:"0 2px 6px rgba(0,0,0,0.25)"
@@ -333,7 +355,9 @@ function TaskPostIt({ task, colorDef, selected, onMouseDown, onToggle, onConnSta
           style={{ fontSize:22, color:colorDef.text, lineHeight:1.25, fontWeight:700, textDecoration:task.done?"line-through":"none", opacity:task.done?0.45:1, wordBreak:"break-word", background:"transparent", border:"none", outline:"none", resize:"none", fontFamily:"inherit", flex:1, padding:0, height:"100%" }}
         />
       </div>
-      <ConnectionHandle onConnStart={(e)=>{e.stopPropagation(); e.preventDefault(); onConnStart(task.id,e);}} color={colorDef.border} />
+      {["top","bottom","left","right"].map(side => (
+        <ConnectionHandle key={side} side={side} onConnStart={(e)=>{e.stopPropagation(); e.preventDefault(); onConnStart(task.id,e,side);}} color={colorDef.border} />
+      ))}
       <ResizeHandle onResizeStart={onResizeStart} color={colorDef.border}/>
     </div>
   );
@@ -567,12 +591,16 @@ function ProjectView({ card, colorDef, onBack, onUpdate }) {
 
   const toggleTask=(id)=>onUpdate({...card,tasks:card.tasks.map(t=>t.id===id?{...t,done:!t.done}:t)});
 
-  const onConnStart=(id,e)=>{
+  const onConnStart=(id,e,side)=>{
     const w = toWorld(e);
     const task = card.tasks.find(t=>t.id===id);
-    const x1 = task.x+(task.w||240), y1 = task.y+(task.h||130)/2;
-    drawConnRef.current = { sourceId: id, x1, y1 };
-    setDrawConn({ sourceId: id, x1, y1, x2: w.x, y2: w.y });
+    let x1, y1;
+    if (side==="top") { x1=task.x+(task.w||240)/2; y1=task.y; }
+    else if (side==="bottom") { x1=task.x+(task.w||240)/2; y1=task.y+(task.h||130); }
+    else if (side==="left") { x1=task.x; y1=task.y+(task.h||130)/2; }
+    else { x1=task.x+(task.w||240); y1=task.y+(task.h||130)/2; }
+    drawConnRef.current = { sourceId: id, x1, y1, side };
+    setDrawConn({ sourceId: id, x1, y1, x2: w.x, y2: w.y, side });
   };
 
   const addTask=({title,color})=>{
@@ -612,13 +640,21 @@ function ProjectView({ card, colorDef, onBack, onUpdate }) {
                 <ConnectionLine key={i} from={f} to={t} tasks={card.tasks} color={colorDef.border}/>
               ))}
               {drawConn && (() => {
-                const dx=Math.abs(drawConn.x2-drawConn.x1);
-                const cx1=drawConn.x1+Math.max(dx/2, 40);
-                const cx2=drawConn.x2-Math.max(dx/2, 40);
+                const {x1, y1, x2, y2, side} = drawConn;
+                let cx1, cy1, cx2, cy2;
+                if (side==="left"||side==="right") {
+                  const cDist = Math.max(Math.abs(x2 - x1) / 2, 40);
+                  cx1 = x1 + (side==="right" ? cDist : -cDist); cy1 = y1;
+                  cx2 = x2 + (side==="right" ? -cDist : cDist); cy2 = y2;
+                } else {
+                  const cDist = Math.max(Math.abs(y2 - y1) / 2, 40);
+                  cx1 = x1; cy1 = y1 + (side==="bottom" ? cDist : -cDist);
+                  cx2 = x2; cy2 = y2 + (side==="bottom" ? -cDist : cDist);
+                }
                 return (
                   <g>
-                    <path d={`M${drawConn.x1} ${drawConn.y1} C${cx1} ${drawConn.y1},${cx2} ${drawConn.y2},${drawConn.x2} ${drawConn.y2}`} stroke={colorDef.border} strokeWidth="2.5" fill="none" strokeDasharray="7 5" opacity="0.8"/>
-                    <circle cx={drawConn.x2} cy={drawConn.y2} r="5" fill={colorDef.border} opacity="0.8"/>
+                    <path d={`M${x1} ${y1} C${cx1} ${cy1},${cx2} ${cy2},${x2} ${y2}`} stroke={colorDef.border} strokeWidth="2.5" fill="none" strokeDasharray="7 5" opacity="0.8"/>
+                    <circle cx={x2} cy={y2} r="5" fill={colorDef.border} opacity="0.8"/>
                   </g>
                 );
               })()}
