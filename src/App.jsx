@@ -287,8 +287,22 @@ function ConnectionLine({ from, to, tasks, color }) {
   );
 }
 
+function ConnectionHandle({ onConnStart, color }) {
+  return (
+    <div
+      onMouseDown={onConnStart}
+      style={{
+        position:"absolute", right:-10, top:"50%", transform:"translateY(-50%)",
+        width:20, height:20, borderRadius:"50%", background:color,
+        border:"3.5px solid #fff", cursor:"crosshair", zIndex:20,
+        boxShadow:"0 2px 6px rgba(0,0,0,0.25)"
+      }}
+    />
+  );
+}
+
 // ─────────────── Task Post-it (big) ───────────────
-function TaskPostIt({ task, colorDef, selected, onMouseDown, onToggle, isConnecting, onStartConnect, isLinkSource, isConnectedToSource, onResizeStart, onChangeTitle }) {
+function TaskPostIt({ task, colorDef, selected, onMouseDown, onToggle, onConnStart, onResizeStart, onChangeTitle }) {
   return (
     <div onMouseDown={onMouseDown} style={{
       position:"absolute", left:task.x, top:task.y,
@@ -297,9 +311,7 @@ function TaskPostIt({ task, colorDef, selected, onMouseDown, onToggle, isConnect
       borderRadius:7, padding:"14px 16px", cursor:"grab",
       boxShadow: selected
         ? `0 0 0 2.5px #3a86ff, 0 6px 24px rgba(0,0,0,0.25)`
-        : isLinkSource
-          ? `0 0 0 2.5px ${colorDef.border}, 0 6px 24px rgba(0,0,0,0.25)`
-          : "0 4px 18px rgba(0,0,0,0.22)",
+        : "0 4px 18px rgba(0,0,0,0.22)",
       userSelect:"none", fontFamily:"'Caveat',cursive",
       display:"flex", flexDirection:"column", overflow:"hidden",
     }}>
@@ -319,15 +331,7 @@ function TaskPostIt({ task, colorDef, selected, onMouseDown, onToggle, isConnect
           style={{ fontSize:22, color:colorDef.text, lineHeight:1.25, fontWeight:700, textDecoration:task.done?"line-through":"none", opacity:task.done?0.45:1, wordBreak:"break-word", background:"transparent", border:"none", outline:"none", resize:"none", fontFamily:"inherit", flex:1, padding:0, height:"100%" }}
         />
       </div>
-      {isConnecting && (
-        <button onClick={e=>{e.stopPropagation();onStartConnect(task.id);}} style={{
-          marginTop:8, background:isConnectedToSource ? "transparent" : colorDef.border, border:`1px solid ${colorDef.border}`, borderRadius:5, color:isConnectedToSource ? colorDef.border : "#fff",
-          fontSize:12, fontFamily:"'DM Sans',sans-serif", fontWeight:600, padding:"4px 10px",
-          cursor:"pointer", display:"flex", alignItems:"center", gap:5, justifyContent:"center",
-        }}>
-          <LinkIcon size={11}/> {isLinkSource ? "Cancelar Origem" : (isConnectedToSource ? "Desvincular" : "Vincular")}
-        </button>
-      )}
+      <ConnectionHandle onConnStart={(e)=>{e.stopPropagation(); e.preventDefault(); onConnStart(task.id,e);}} color={colorDef.border} />
       <ResizeHandle onResizeStart={onResizeStart} color={colorDef.border}/>
     </div>
   );
@@ -439,13 +443,13 @@ function rectHit(item, box) {
 // ─────────────── Project Inner Canvas ───────────────
 function ProjectView({ card, colorDef, onBack, onUpdate }) {
   const [viewMode,setViewMode]=useState("canvas");
-  const [connecting,setConnecting]=useState(false);
-  const [linkSource,setLinkSource]=useState(null);
   const [showAddTask,setShowAddTask]=useState(false);
   const [selected,setSelected]=useState(new Set());
   const [selBox,setSelBox]=useState(null);
+  const [drawConn, setDrawConn]=useState(null);
 
   const canvasRef=useRef(null);
+  const drawConnRef=useRef(null);
   const dragRef=useRef(null);      // dragging items
   const resizeRef=useRef(null);    // resizing
   const selRef=useRef(null);       // selection box draw
@@ -464,7 +468,7 @@ function ProjectView({ card, colorDef, onBack, onUpdate }) {
 
   // ── canvas background mousedown → start selection box ──
   const onCanvasBgDown=(e)=>{
-    if(e.button!==0||e.shiftKey||connecting) return;
+    if(e.button!==0||e.shiftKey) return;
     const w=toWorld(e);
     selRef.current={x0:w.x,y0:w.y};
     setSelBox({x1:w.x,y1:w.y,x2:w.x,y2:w.y});
@@ -473,7 +477,7 @@ function ProjectView({ card, colorDef, onBack, onUpdate }) {
 
   // ── item drag start ──
   const onItemDown=(id,e)=>{
-    if(e.button!==0||e.shiftKey||connecting) return;
+    if(e.button!==0||e.shiftKey) return;
     e.stopPropagation();
     const w=toWorld(e);
     let ids;
@@ -505,6 +509,10 @@ function ProjectView({ card, colorDef, onBack, onUpdate }) {
       const hits=new Set(card.tasks.filter(t=>rectHit(t,box)).map(t=>t.id));
       setSelected(hits);
     }
+    if(drawConnRef.current){
+      const w=toWorld(e);
+      setDrawConn(p=>({...p, x2:w.x, y2:w.y}));
+    }
     if(dragRef.current){
       const dragInfo = dragRef.current;
       const w=toWorld(e);
@@ -528,10 +536,26 @@ function ProjectView({ card, colorDef, onBack, onUpdate }) {
     }
   },[card,onUpdate,cam]);
 
-  const onUp=useCallback(()=>{
+  const onUp=useCallback((e)=>{
+    if(drawConnRef.current && e && canvasRef.current) {
+      const r=canvasRef.current.getBoundingClientRect();
+      const wx = (e.clientX-r.left-cam.x)/cam.zoom, wy = (e.clientY-r.top-cam.y)/cam.zoom;
+      const target = card.tasks.find(t=> wx>=t.x && wx<=t.x+(t.w||240) && wy>=t.y && wy<=t.y+(t.h||130));
+      if(target && target.id !== drawConnRef.current.sourceId) {
+        const a = drawConnRef.current.sourceId, b = target.id;
+        const ex = card.connections?.some(([x,y])=>(x===a&&y===b)||(x===b&&y===a));
+        if(!ex) {
+          onUpdate({...card,connections:[...(card.connections||[]),[a,b]]});
+        } else {
+          onUpdate({...card,connections:card.connections.filter(([x,y])=>!( (x===a&&y===b) || (x===b&&y===a) ))});
+        }
+      }
+      setDrawConn(null);
+      drawConnRef.current = null;
+    }
     selRef.current=null; dragRef.current=null; resizeRef.current=null;
     setSelBox(null);
-  },[]);
+  },[card, onUpdate, cam]);
 
   useEffect(()=>{
     window.addEventListener("mousemove",onMove);
@@ -541,19 +565,12 @@ function ProjectView({ card, colorDef, onBack, onUpdate }) {
 
   const toggleTask=(id)=>onUpdate({...card,tasks:card.tasks.map(t=>t.id===id?{...t,done:!t.done}:t)});
 
-  const handleStartConnect=(taskId)=>{
-    if(!linkSource){
-      setLinkSource(taskId);
-    } else if(linkSource!==taskId){
-      const ex=card.connections?.some(([a,b])=>(a===linkSource&&b===taskId)||(a===taskId&&b===linkSource));
-      if(!ex) {
-        onUpdate({...card,connections:[...(card.connections||[]),[linkSource,taskId]]});
-      } else {
-        onUpdate({...card,connections:card.connections.filter(([a,b])=>!( (a===linkSource&&b===taskId) || (a===taskId&&b===linkSource) ))});
-      }
-    } else {
-      setLinkSource(null);
-    }
+  const onConnStart=(id,e)=>{
+    const w = toWorld(e);
+    const task = card.tasks.find(t=>t.id===id);
+    const x1 = task.x+(task.w||240)/2, y1 = task.y+(task.h||130)/2;
+    drawConnRef.current = { sourceId: id, x1, y1 };
+    setDrawConn({ sourceId: id, x1, y1, x2: w.x, y2: w.y });
   };
 
   const addTask=({title,color})=>{
@@ -577,11 +594,7 @@ function ProjectView({ card, colorDef, onBack, onUpdate }) {
             </button>
           ))}
         </div>
-        {viewMode==="canvas"&&card.type==="project"&&(
-          <button onClick={()=>{setConnecting(!connecting);setLinkSource(null);}} style={{ display:"flex", alignItems:"center", gap:5, padding:"6px 12px", borderRadius:6, border:connecting?`2px solid ${COLORS.accent}`:"2px solid transparent", background:connecting?COLORS.accentSoft:"rgba(255,255,255,0.06)", color:connecting?COLORS.accent:COLORS.muted, cursor:"pointer", fontFamily:"'DM Sans',sans-serif", fontSize:12, fontWeight:600 }}>
-            <LinkIcon/> Conectar
-          </button>
-        )}
+
         <button onClick={()=>setShowAddTask(true)} style={{ display:"flex", alignItems:"center", gap:5, padding:"6px 12px", borderRadius:6, border:"none", background:COLORS.accent, color:COLORS.white, cursor:"pointer", fontFamily:"'DM Sans',sans-serif", fontSize:12, fontWeight:700 }}>
           <PlusIcon size={14}/> Tarefa
         </button>
@@ -596,16 +609,23 @@ function ProjectView({ card, colorDef, onBack, onUpdate }) {
               {(card.connections||[]).map(([f,t],i)=>(
                 <ConnectionLine key={i} from={f} to={t} tasks={card.tasks} color={colorDef.border}/>
               ))}
+              {drawConn && (() => {
+                const mx=(drawConn.x1+drawConn.x2)/2;
+                return (
+                  <g>
+                    <path d={`M${drawConn.x1} ${drawConn.y1} C${mx} ${drawConn.y1},${mx} ${drawConn.y2},${drawConn.x2} ${drawConn.y2}`} stroke={colorDef.border} strokeWidth="2.5" fill="none" strokeDasharray="7 5" opacity="0.8"/>
+                    <circle cx={drawConn.x2} cy={drawConn.y2} r="5" fill={colorDef.border} opacity="0.8"/>
+                  </g>
+                );
+              })()}
             </svg>
             {card.tasks.map(task=>{
               const tc=CARD_COLORS[task.color||0];
-              const isConnectedToSource = linkSource && card.connections?.some(([a,b])=>(a===linkSource&&b===task.id)||(a===task.id&&b===linkSource));
               return (
                 <TaskPostIt key={task.id} task={task} colorDef={tc} selected={selected.has(task.id)}
                   onMouseDown={e=>onItemDown(task.id,e)}
                   onToggle={()=>toggleTask(task.id)}
-                  isConnecting={connecting} onStartConnect={handleStartConnect} isLinkSource={linkSource===task.id}
-                  isConnectedToSource={isConnectedToSource}
+                  onConnStart={onConnStart}
                   onResizeStart={e=>onResizeStart(task.id,e)}
                   onChangeTitle={(title)=>onUpdate({...card,tasks:card.tasks.map(t=>t.id===task.id?{...t,title}:t)})}
                 />
