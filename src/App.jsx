@@ -288,7 +288,7 @@ function ConnectionLine({ from, to, tasks, color }) {
 }
 
 // ─────────────── Task Post-it (big) ───────────────
-function TaskPostIt({ task, colorDef, selected, onMouseDown, onToggle, isConnecting, onStartConnect, isLinkSource, onResizeStart, onChangeTitle }) {
+function TaskPostIt({ task, colorDef, selected, onMouseDown, onToggle, isConnecting, onStartConnect, isLinkSource, isConnectedToSource, onResizeStart, onChangeTitle }) {
   return (
     <div onMouseDown={onMouseDown} style={{
       position:"absolute", left:task.x, top:task.y,
@@ -321,11 +321,11 @@ function TaskPostIt({ task, colorDef, selected, onMouseDown, onToggle, isConnect
       </div>
       {isConnecting && (
         <button onClick={e=>{e.stopPropagation();onStartConnect(task.id);}} style={{
-          marginTop:8, background:colorDef.border, border:"none", borderRadius:5, color:"#fff",
-          fontSize:12, fontFamily:"'DM Sans',sans-serif", fontWeight:600, padding:"5px 10px",
+          marginTop:8, background:isConnectedToSource ? "transparent" : colorDef.border, border:`1px solid ${colorDef.border}`, borderRadius:5, color:isConnectedToSource ? colorDef.border : "#fff",
+          fontSize:12, fontFamily:"'DM Sans',sans-serif", fontWeight:600, padding:"4px 10px",
           cursor:"pointer", display:"flex", alignItems:"center", gap:5, justifyContent:"center",
         }}>
-          <LinkIcon size={11}/> {isLinkSource?"Clique no destino":"Conectar"}
+          <LinkIcon size={11}/> {isLinkSource ? "Cancelar Origem" : (isConnectedToSource ? "Desvincular" : "Vincular")}
         </button>
       )}
       <ResizeHandle onResizeStart={onResizeStart} color={colorDef.border}/>
@@ -542,15 +542,17 @@ function ProjectView({ card, colorDef, onBack, onUpdate }) {
   const toggleTask=(id)=>onUpdate({...card,tasks:card.tasks.map(t=>t.id===id?{...t,done:!t.done}:t)});
 
   const handleStartConnect=(taskId)=>{
-    if(!linkSource){setLinkSource(taskId);}
-    else if(linkSource!==taskId){
+    if(!linkSource){
+      setLinkSource(taskId);
+    } else if(linkSource!==taskId){
       const ex=card.connections?.some(([a,b])=>(a===linkSource&&b===taskId)||(a===taskId&&b===linkSource));
       if(!ex) {
         onUpdate({...card,connections:[...(card.connections||[]),[linkSource,taskId]]});
       } else {
         onUpdate({...card,connections:card.connections.filter(([a,b])=>!( (a===linkSource&&b===taskId) || (a===taskId&&b===linkSource) ))});
       }
-      setLinkSource(null); setConnecting(false);
+    } else {
+      setLinkSource(null);
     }
   };
 
@@ -597,11 +599,13 @@ function ProjectView({ card, colorDef, onBack, onUpdate }) {
             </svg>
             {card.tasks.map(task=>{
               const tc=CARD_COLORS[task.color||0];
+              const isConnectedToSource = linkSource && card.connections?.some(([a,b])=>(a===linkSource&&b===task.id)||(a===task.id&&b===linkSource));
               return (
                 <TaskPostIt key={task.id} task={task} colorDef={tc} selected={selected.has(task.id)}
                   onMouseDown={e=>onItemDown(task.id,e)}
                   onToggle={()=>toggleTask(task.id)}
                   isConnecting={connecting} onStartConnect={handleStartConnect} isLinkSource={linkSource===task.id}
+                  isConnectedToSource={isConnectedToSource}
                   onResizeStart={e=>onResizeStart(task.id,e)}
                   onChangeTitle={(title)=>onUpdate({...card,tasks:card.tasks.map(t=>t.id===task.id?{...t,title}:t)})}
                 />
