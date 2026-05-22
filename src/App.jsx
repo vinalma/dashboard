@@ -217,7 +217,7 @@ function ResizeHandle({ onResizeStart, color }) {
 }
 
 // ─────────────── Post-it Card (main canvas) ───────────────
-function PostItCard({ card, colorDef, selected, onMouseDown, onOpen, onDelete, onResizeStart }) {
+function PostItCard({ card, colorDef, selected, onMouseDown, onOpen, onDelete, onResizeStart, onUpdate }) {
   const doneCount = card.tasks?.filter(t=>t.done).length||0;
   const totalCount = card.tasks?.length||0;
   const progress = totalCount>0 ? (doneCount/totalCount)*100 : 0;
@@ -244,9 +244,12 @@ function PostItCard({ card, colorDef, selected, onMouseDown, onOpen, onDelete, o
           <TrashIcon size={13} />
         </button>
       </div>
-      <div style={{ fontSize:26, fontWeight:700, color:colorDef.text, lineHeight:1.2, flex:1, wordBreak:"break-word" }}>
-        {card.title}
-      </div>
+      <textarea
+        value={card.title}
+        onChange={e=>onUpdate?.({...card, title:e.target.value})}
+        onMouseDown={e=>e.stopPropagation()}
+        style={{ fontSize:26, fontWeight:700, color:colorDef.text, lineHeight:1.2, flex:1, wordBreak:"break-word", background:"transparent", border:"none", outline:"none", resize:"none", fontFamily:"inherit", padding:0 }}
+      />
       {totalCount>0 && (
         <div style={{ marginBottom:10 }}>
           <div style={{ height:5, background:colorDef.border+"33", borderRadius:3, overflow:"hidden" }}>
@@ -285,7 +288,7 @@ function ConnectionLine({ from, to, tasks, color }) {
 }
 
 // ─────────────── Task Post-it (big) ───────────────
-function TaskPostIt({ task, colorDef, selected, onMouseDown, onToggle, isConnecting, onStartConnect, isLinkSource, onResizeStart }) {
+function TaskPostIt({ task, colorDef, selected, onMouseDown, onToggle, isConnecting, onStartConnect, isLinkSource, onResizeStart, onChangeTitle }) {
   return (
     <div onMouseDown={onMouseDown} style={{
       position:"absolute", left:task.x, top:task.y,
@@ -309,9 +312,12 @@ function TaskPostIt({ task, colorDef, selected, onMouseDown, onToggle, isConnect
         }}>
           {task.done && <CheckIcon size={15}/>}
         </button>
-        <span style={{ fontSize:22, color:colorDef.text, lineHeight:1.25, fontWeight:700, textDecoration:task.done?"line-through":"none", opacity:task.done?0.45:1, wordBreak:"break-word" }}>
-          {task.title}
-        </span>
+        <textarea
+          value={task.title}
+          onChange={e=>onChangeTitle?.(e.target.value)}
+          onMouseDown={e=>e.stopPropagation()}
+          style={{ fontSize:22, color:colorDef.text, lineHeight:1.25, fontWeight:700, textDecoration:task.done?"line-through":"none", opacity:task.done?0.45:1, wordBreak:"break-word", background:"transparent", border:"none", outline:"none", resize:"none", fontFamily:"inherit", flex:1, padding:0, height:"100%" }}
+        />
       </div>
       {isConnecting && (
         <button onClick={e=>{e.stopPropagation();onStartConnect(task.id);}} style={{
@@ -328,7 +334,7 @@ function TaskPostIt({ task, colorDef, selected, onMouseDown, onToggle, isConnect
 }
 
 // ─────────────── Board View ───────────────
-function BoardView({ card, onToggleTask }) {
+function BoardView({ card, onToggleTask, onChangeTaskTitle }) {
   const todo = card.tasks.filter(t=>!t.done), done = card.tasks.filter(t=>t.done);
   const col = { flex:1, minWidth:220, background:"rgba(255,255,255,0.05)", borderRadius:10, padding:14 };
   return (
@@ -349,7 +355,12 @@ function BoardView({ card, onToggleTask }) {
                 <div style={{ width:22, height:22, borderRadius:5, border:`2.5px solid ${tc.border}`, flexShrink:0, background:isDone?tc.border:"transparent", display:"flex", alignItems:"center", justifyContent:"center" }}>
                   {isDone&&<CheckIcon size={12}/>}
                 </div>
-                {t.title}
+                <input
+                  value={t.title}
+                  onChange={e=>onChangeTaskTitle?.(t.id, e.target.value)}
+                  onClick={e=>e.stopPropagation()}
+                  style={{ background:"transparent", border:"none", outline:"none", fontSize:22, fontFamily:"inherit", color:"inherit", flex:1, textDecoration:isDone?"line-through":"none", opacity:isDone?0.55:1 }}
+                />
               </div>
             );
           })}
@@ -534,7 +545,11 @@ function ProjectView({ card, colorDef, onBack, onUpdate }) {
     if(!linkSource){setLinkSource(taskId);}
     else if(linkSource!==taskId){
       const ex=card.connections?.some(([a,b])=>(a===linkSource&&b===taskId)||(a===taskId&&b===linkSource));
-      if(!ex) onUpdate({...card,connections:[...(card.connections||[]),[linkSource,taskId]]});
+      if(!ex) {
+        onUpdate({...card,connections:[...(card.connections||[]),[linkSource,taskId]]});
+      } else {
+        onUpdate({...card,connections:card.connections.filter(([a,b])=>!( (a===linkSource&&b===taskId) || (a===taskId&&b===linkSource) ))});
+      }
       setLinkSource(null); setConnecting(false);
     }
   };
@@ -588,6 +603,7 @@ function ProjectView({ card, colorDef, onBack, onUpdate }) {
                   onToggle={()=>toggleTask(task.id)}
                   isConnecting={connecting} onStartConnect={handleStartConnect} isLinkSource={linkSource===task.id}
                   onResizeStart={e=>onResizeStart(task.id,e)}
+                  onChangeTitle={(title)=>onUpdate({...card,tasks:card.tasks.map(t=>t.id===task.id?{...t,title}:t)})}
                 />
               );
             })}
@@ -602,7 +618,7 @@ function ProjectView({ card, colorDef, onBack, onUpdate }) {
         </div>
       ) : (
         <div style={{ flex:1, overflow:"auto", padding:"0 24px" }}>
-          <BoardView card={card} onToggleTask={toggleTask}/>
+          <BoardView card={card} onToggleTask={toggleTask} onChangeTaskTitle={(id, title)=>onUpdate({...card,tasks:card.tasks.map(t=>t.id===id?{...t,title}:t)})}/>
         </div>
       )}
       {showAddTask&&<AddTaskModal onAdd={addTask} onClose={()=>setShowAddTask(false)}/>}
@@ -759,6 +775,7 @@ export default function App() {
               onOpen={()=>setOpenCardId(card.id)}
               onDelete={()=>deleteCard(card.id)}
               onResizeStart={e=>onResizeStart(card.id,e)}
+              onUpdate={(newCard)=>updateCard(newCard)}
             />
           ))}
         </div>
