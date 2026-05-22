@@ -83,12 +83,13 @@ function useInfiniteCanvas(containerRef) {
   const MIN_ZOOM = 0.1, MAX_ZOOM = 4;
 
   const handleWheel = useCallback((e) => {
+    if (e.target.tagName.toLowerCase() === 'textarea') return;
     e.preventDefault();
     const el = containerRef.current;
     if (!el) return;
     const rect = el.getBoundingClientRect();
     const mx = e.clientX - rect.left, my = e.clientY - rect.top;
-    if (e.ctrlKey || e.metaKey || Math.abs(e.deltaY) > 40) {
+    if (e.ctrlKey || e.metaKey) {
       const factor = e.deltaY > 0 ? 0.88 : 1.14;
       setCam(p => {
         const z = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, p.zoom * factor));
@@ -96,7 +97,9 @@ function useInfiniteCanvas(containerRef) {
         return { zoom: z, x: mx - (mx - p.x)*r, y: my - (my - p.y)*r };
       });
     } else {
-      setCam(p => ({ ...p, x: p.x - e.deltaX, y: p.y - e.deltaY }));
+      const dx = e.shiftKey && e.deltaX === 0 ? e.deltaY : e.deltaX;
+      const dy = e.shiftKey && e.deltaX === 0 ? 0 : e.deltaY;
+      setCam(p => ({ ...p, x: p.x - dx, y: p.y - dy }));
     }
   }, [containerRef]);
 
