@@ -276,12 +276,14 @@ function PostItCard({ card, colorDef, selected, onMouseDown, onOpen, onDelete, o
 function ConnectionLine({ from, to, tasks, color }) {
   const t1 = tasks.find(t=>t.id===from), t2 = tasks.find(t=>t.id===to);
   if (!t1||!t2) return null;
-  const x1=t1.x+(t1.w||240)/2, y1=t1.y+(t1.h||130)/2;
-  const x2=t2.x+(t2.w||240)/2, y2=t2.y+(t2.h||130)/2;
-  const mx=(x1+x2)/2;
+  const x1=t1.x+(t1.w||240), y1=t1.y+(t1.h||130)/2; // Right edge of source
+  const x2=t2.x, y2=t2.y+(t2.h||130)/2;             // Left edge of target
+  const dx=Math.abs(x2-x1);
+  const cx1=x1+Math.max(dx/2, 40);
+  const cx2=x2-Math.max(dx/2, 40);
   return (
     <g>
-      <path d={`M${x1} ${y1} C${mx} ${y1},${mx} ${y2},${x2} ${y2}`} stroke={color} strokeWidth="2.5" fill="none" strokeDasharray="7 5" opacity="0.5"/>
+      <path d={`M${x1} ${y1} C${cx1} ${y1},${cx2} ${y2},${x2} ${y2}`} stroke={color} strokeWidth="2.5" fill="none" strokeDasharray="7 5" opacity="0.5"/>
       <circle cx={x2} cy={y2} r="5" fill={color} opacity="0.6"/>
     </g>
   );
@@ -568,7 +570,7 @@ function ProjectView({ card, colorDef, onBack, onUpdate }) {
   const onConnStart=(id,e)=>{
     const w = toWorld(e);
     const task = card.tasks.find(t=>t.id===id);
-    const x1 = task.x+(task.w||240)/2, y1 = task.y+(task.h||130)/2;
+    const x1 = task.x+(task.w||240), y1 = task.y+(task.h||130)/2;
     drawConnRef.current = { sourceId: id, x1, y1 };
     setDrawConn({ sourceId: id, x1, y1, x2: w.x, y2: w.y });
   };
@@ -610,10 +612,12 @@ function ProjectView({ card, colorDef, onBack, onUpdate }) {
                 <ConnectionLine key={i} from={f} to={t} tasks={card.tasks} color={colorDef.border}/>
               ))}
               {drawConn && (() => {
-                const mx=(drawConn.x1+drawConn.x2)/2;
+                const dx=Math.abs(drawConn.x2-drawConn.x1);
+                const cx1=drawConn.x1+Math.max(dx/2, 40);
+                const cx2=drawConn.x2-Math.max(dx/2, 40);
                 return (
                   <g>
-                    <path d={`M${drawConn.x1} ${drawConn.y1} C${mx} ${drawConn.y1},${mx} ${drawConn.y2},${drawConn.x2} ${drawConn.y2}`} stroke={colorDef.border} strokeWidth="2.5" fill="none" strokeDasharray="7 5" opacity="0.8"/>
+                    <path d={`M${drawConn.x1} ${drawConn.y1} C${cx1} ${drawConn.y1},${cx2} ${drawConn.y2},${drawConn.x2} ${drawConn.y2}`} stroke={colorDef.border} strokeWidth="2.5" fill="none" strokeDasharray="7 5" opacity="0.8"/>
                     <circle cx={drawConn.x2} cy={drawConn.y2} r="5" fill={colorDef.border} opacity="0.8"/>
                   </g>
                 );
