@@ -273,7 +273,7 @@ function PostItCard({ card, colorDef, selected, onMouseDown, onOpen, onDelete, o
 }
 
 // ─────────────── Connection SVG ───────────────
-function ConnectionLine({ from, to, tasks, color }) {
+function ConnectionLine({ from, to, tasks, color, isSelected, onSelect, onDelete, onRedirectStart }) {
   const t1 = tasks.find(t=>t.id===from), t2 = tasks.find(t=>t.id===to);
   if (!t1||!t2) return null;
   const t1x = t1.x + (t1.w||240)/2, t1y = t1.y + (t1.h||130)/2;
@@ -297,10 +297,47 @@ function ConnectionLine({ from, to, tasks, color }) {
     cx2 = x2; cy2 = y2 + (dy > 0 ? -cDist : cDist);
   }
 
+  const mx = 0.125*x1 + 0.375*cx1 + 0.375*cx2 + 0.125*x2;
+  const my = 0.125*y1 + 0.375*cy1 + 0.375*cy2 + 0.125*y2;
+
   return (
     <g>
-      <path d={`M${x1} ${y1} C${cx1} ${cy1},${cx2} ${cy2},${x2} ${y2}`} stroke={color} strokeWidth="2.5" fill="none" strokeDasharray="7 5" opacity="0.5"/>
-      <circle cx={x2} cy={y2} r="5" fill={color} opacity="0.6"/>
+      {/* Hitbox */}
+      <path
+        d={`M${x1} ${y1} C${cx1} ${cy1},${cx2} ${cy2},${x2} ${y2}`}
+        stroke="transparent" strokeWidth="20" fill="none"
+        style={{ cursor:"pointer", pointerEvents:"visibleStroke" }}
+        onMouseDown={onSelect}
+      />
+      {/* Visible Line */}
+      <path
+        d={`M${x1} ${y1} C${cx1} ${cy1},${cx2} ${cy2},${x2} ${y2}`}
+        stroke={isSelected ? "#3a86ff" : color} strokeWidth={isSelected ? 3.5 : 2.5}
+        fill="none" strokeDasharray={isSelected ? "none" : "7 5"}
+        opacity={isSelected ? 1 : 0.5}
+        style={{ pointerEvents:"none" }}
+      />
+      {/* Target Arrow / Dot */}
+      <circle cx={x2} cy={y2} r="5" fill={isSelected ? "#3a86ff" : color} opacity={isSelected ? 1 : 0.6} style={{ pointerEvents:"none" }}/>
+
+      {isSelected && (
+        <>
+          <foreignObject x={mx-14} y={my-14} width="28" height="28" style={{ pointerEvents:"auto" }}>
+            <button
+              onMouseDown={(e)=>{e.stopPropagation(); e.preventDefault(); onDelete();}}
+              style={{ width:28, height:28, borderRadius:"50%", background:"#e94560", border:"2px solid #fff", display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", cursor:"pointer", padding:0, boxShadow:"0 2px 8px rgba(0,0,0,0.3)" }}
+            >
+              <TrashIcon size={14}/>
+            </button>
+          </foreignObject>
+          {/* Redirect Handle */}
+          <circle
+            cx={x2} cy={y2} r="10" fill="#3a86ff" stroke="#fff" strokeWidth="3"
+            style={{ cursor:"grab", pointerEvents:"auto" }}
+            onMouseDown={(e)=>{e.stopPropagation(); e.preventDefault(); onRedirectStart(e);}}
+          />
+        </>
+      )}
     </g>
   );
 }
@@ -471,6 +508,7 @@ function ProjectView({ card, colorDef, onBack, onUpdate }) {
   const [viewMode,setViewMode]=useState("canvas");
   const [showAddTask,setShowAddTask]=useState(false);
   const [selected,setSelected]=useState(new Set());
+  const [selectedConn,setSelectedConn]=useState(null);
   const [selBox,setSelBox]=useState(null);
   const [drawConn, setDrawConn]=useState(null);
 
@@ -499,12 +537,14 @@ function ProjectView({ card, colorDef, onBack, onUpdate }) {
     selRef.current={x0:w.x,y0:w.y};
     setSelBox({x1:w.x,y1:w.y,x2:w.x,y2:w.y});
     setSelected(new Set());
+    setSelectedConn(null);
   };
 
   // ── item drag start ──
   const onItemDown=(id,e)=>{
     if(e.button!==0||e.shiftKey) return;
     e.stopPropagation();
+    setSelectedConn(null);
     const w=toWorld(e);
     let ids;
     if(selected.has(id)) ids=[...selected];
@@ -637,7 +677,38 @@ function ProjectView({ card, colorDef, onBack, onUpdate }) {
           <div style={{ position:"absolute", left:0, top:0, transform:`translate(${cam.x}px,${cam.y}px) scale(${cam.zoom})`, transformOrigin:"0 0" }}>
             <svg style={{ position:"absolute", left:0, top:0, width:9999, height:9999, pointerEvents:"none", zIndex:1 }}>
               {(card.connections||[]).map(([f,t],i)=>(
-                <ConnectionLine key={i} from={f} to={t} tasks={card.tasks} color={colorDef.border}/>
+                <ConnectionLine key={i} from={f} to={t} tasks={card.tasks} color={colorDef.border}
+                  isSelected={selectedConn?.from===f && selectedConn?.to===t}
+                  onSelect={(e)=>{ e.stopPropagation(); setSelectedConn({from:f, to:t}); setSelected(new Set()); }}
+                  onDelete={()=>{
+                    onUpdate({...card,connections:card.connections.filter(([a,b])=>!(a===f&&b===t))});
+                    setSelectedConn(null);
+                  }}
+                  onRedirectStart={(e)=>{
+                    const w = toWorld(e);
+                    const taskF = card.tasks.find(x=>x.id===f);
+                    const taskT = card.tasks.find(x=>x.id===t);
+                    if(taskF && taskT) {
+                      const t1x = taskF.x+(taskF.w||240)/2, t1y = taskF.y+(taskF.h||130)/2;
+                      const t2x = taskT.x+(taskT.w||240)/2, t2y = taskT.y+(taskT.h||130)/2;
+                      const dx = t2x - t1x, dy = t2y - t1y;
+                      let side;
+                      if(Math.abs(dx)>Math.abs(dy)) side = dx>0?"right":"left";
+                      else side = dy>0?"bottom":"top";
+                      
+                      let x1, y1;
+                      if (side==="top") { x1=taskF.x+(taskF.w||240)/2; y1=taskF.y; }
+                      else if (side==="bottom") { x1=taskF.x+(taskF.w||240)/2; y1=taskF.y+(taskF.h||130); }
+                      else if (side==="left") { x1=taskF.x; y1=taskF.y+(taskF.h||130)/2; }
+                      else { x1=taskF.x+(taskF.w||240); y1=taskF.y+(taskF.h||130)/2; }
+                      
+                      drawConnRef.current = { sourceId: f, x1, y1, side };
+                      setDrawConn({ sourceId: f, x1, y1, x2: w.x, y2: w.y, side });
+                      onUpdate({...card,connections:card.connections.filter(([a,b])=>!(a===f&&b===t))});
+                      setSelectedConn(null);
+                    }
+                  }}
+                />
               ))}
               {drawConn && (() => {
                 const {x1, y1, x2, y2, side} = drawConn;
