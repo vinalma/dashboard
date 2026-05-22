@@ -495,12 +495,13 @@ function ProjectView({ card, colorDef, onBack, onUpdate }) {
       setSelected(hits);
     }
     if(dragRef.current){
+      const dragInfo = dragRef.current;
       const w=toWorld(e);
       onUpdate({
         ...card,
         tasks:card.tasks.map(t=>{
-          if(!dragRef.current.ids.includes(t.id)) return t;
-          const s=dragRef.current.starts[t.id];
+          if(!dragInfo.ids.includes(t.id)) return t;
+          const s=dragInfo.starts[t.id];
           return {...t, x:w.x+s.x, y:w.y+s.y};
         }),
       });
@@ -672,12 +673,13 @@ export default function App() {
       setSelected(hits);
     }
     if(dragRef.current){
+      const dragInfo = dragRef.current;
       const w=toWorld(e);
       setData(prev=>({
         ...prev,
         cards:prev.cards.map(c=>{
-          if(!dragRef.current.ids.includes(c.id)) return c;
-          const s=dragRef.current.starts[c.id];
+          if(!dragInfo.ids.includes(c.id)) return c;
+          const s=dragInfo.starts[c.id];
           return {...c,x:w.x+s.x,y:w.y+s.y};
         }),
       }));
