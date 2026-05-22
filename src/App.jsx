@@ -1,17 +1,23 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 
 const COLORS = {
-  bg: "#1a1a2e", surface: "#16213e", accent: "#e94560", accentSoft: "#e9456033",
-  white: "#eaf6ff", muted: "#8892b0",
+  bg: "#008080",
+  surface: "#c0c0c0",
+  accent: "#000080",
+  accentSoft: "#1084d0",
+  white: "#ffffff",
+  black: "#000000",
+  muted: "#808080",
+  highlight: "#dfdfdf",
 };
 
 const CARD_COLORS = [
-  { bg: "#fef3c7", border: "#f59e0b", text: "#92400e" },
-  { bg: "#d1fae5", border: "#10b981", text: "#065f46" },
-  { bg: "#dbeafe", border: "#3b82f6", text: "#1e40af" },
-  { bg: "#ede9fe", border: "#8b5cf6", text: "#5b21b6" },
-  { bg: "#fce7f3", border: "#ec4899", text: "#9d174d" },
-  { bg: "#ffedd5", border: "#f97316", text: "#9a3412" },
+  { bg: "#c0c0c0", title: "#000080", text: "#000000", paper: "#ffffff" },
+  { bg: "#c0c0c0", title: "#800000", text: "#000000", paper: "#ffffff" },
+  { bg: "#c0c0c0", title: "#008000", text: "#000000", paper: "#ffffff" },
+  { bg: "#c0c0c0", title: "#808000", text: "#000000", paper: "#ffffff" },
+  { bg: "#c0c0c0", title: "#800080", text: "#000000", paper: "#ffffff" },
+  { bg: "#c0c0c0", title: "#008080", text: "#000000", paper: "#ffffff" },
 ];
 
 const uid = () => Math.random().toString(36).slice(2, 10);
@@ -55,27 +61,17 @@ const INITIAL_DATA = {
   ],
 };
 
-// ─────────────── Icons ───────────────
-const I = (d, extra="") => ({ size=16 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
-    stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d={d} />
-    {extra && <path d={extra} />}
-  </svg>
-);
-function PlusIcon({size=16}){return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>;}
-function TrashIcon({size=16}){return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>;}
-function LinkIcon({size=14}){return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>;}
-function CheckIcon({size=14}){return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>;}
-function ArrowBack({size=20}){return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>;}
-function BoardIcon({size=16}){return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>;}
-function MapIcon({size=16}){return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="3"/><circle cx="4" cy="6" r="2"/><circle cx="20" cy="6" r="2"/><circle cx="4" cy="18" r="2"/><circle cx="20" cy="18" r="2"/><line x1="6" y1="6" x2="9" y2="10"/><line x1="18" y1="6" x2="15" y2="10"/><line x1="6" y1="18" x2="9" y2="14"/><line x1="18" y1="18" x2="15" y2="14"/></svg>;}
-function ExpandIcon({size=14}){return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>;}
-function ZoomInIcon({size=16}){return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>;}
-function ZoomOutIcon({size=16}){return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></svg>;}
-function FitIcon({size=16}){return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>;}
+const WIN98_STYLES = {
+  window: { background:"#c0c0c0", boxShadow:"inset -1px -1px #0a0a0a,inset 1px 1px #dfdfdf,inset -2px -2px grey,inset 2px 2px #fff" },
+  button: { background:"#c0c0c0", boxShadow:"inset -1px -1px #0a0a0a,inset 1px 1px #fff,inset -2px -2px grey,inset 2px 2px #dfdfdf", color:"#000", outline:"none", border:"none", fontFamily:"'MS Sans Serif', Tahoma, sans-serif", cursor:"pointer", padding:"2px 8px", fontSize: 12 },
+  buttonActive: { background:"#c0c0c0", boxShadow:"inset -1px -1px #fff,inset 1px 1px #0a0a0a,inset -2px -2px #dfdfdf,inset 2px 2px grey", color:"#000", outline:"none", border:"none", fontFamily:"'MS Sans Serif', Tahoma, sans-serif", cursor:"pointer", padding:"3px 7px 1px 9px", fontSize: 12 },
+  inset: { background:"#fff", boxShadow:"inset -1px -1px #fff,inset 1px 1px grey,inset -2px -2px #dfdfdf,inset 2px 2px #0a0a0a" },
+  titleBar: (color="#000080") => ({ background:color, color:"#fff", fontWeight:"bold", padding:"2px 4px", display:"flex", justifyContent:"space-between", alignItems:"center", fontFamily:"'MS Sans Serif', Tahoma, sans-serif", fontSize:12, letterSpacing:0 }),
+  text: { fontFamily:"'MS Sans Serif', Tahoma, sans-serif", fontSize: 12, color: "#000" }
+};
 
-// ─────────────── Infinite Canvas Hook ───────────────
+
+
 function useInfiniteCanvas(containerRef) {
   const [cam, setCam] = useState({ x: 60, y: 60, zoom: 1 });
   const isPanning = useRef(false);
@@ -99,7 +95,7 @@ function useInfiniteCanvas(containerRef) {
       return;
     }
 
-    if (e.target.tagName.toLowerCase() === 'textarea') return;
+    if (e.target.tagName.toLowerCase() === 'textarea' || e.target.tagName.toLowerCase() === 'input') return;
     e.preventDefault();
     
     const dx = e.shiftKey && e.deltaX === 0 ? e.deltaY : e.deltaX;
@@ -155,17 +151,16 @@ function useInfiniteCanvas(containerRef) {
   return { cam, setCam, zoomTo, fitToContent };
 }
 
-// ─────────────── Dot Grid ───────────────
 function DotGrid({ cam }) {
   const s = 40 * cam.zoom;
   const ox = ((cam.x % s) + s) % s;
   const oy = ((cam.y % s) + s) % s;
   return (
-    <div style={{ position:"absolute", inset:0, overflow:"hidden", pointerEvents:"none", zIndex:0 }}>
+    <div style={{ position:"absolute", inset:0, background:COLORS.bg, pointerEvents:"none", zIndex:0 }}>
       <svg width="100%" height="100%">
         <defs>
           <pattern id="dg" x={ox} y={oy} width={s} height={s} patternUnits="userSpaceOnUse">
-            <circle cx={s/2} cy={s/2} r={Math.max(0.8, 1.4*cam.zoom)} fill="rgba(255,255,255,0.07)" />
+            <rect x="0" y="0" width="1" height="1" fill="#000" opacity="0.3" />
           </pattern>
         </defs>
         <rect width="100%" height="100%" fill="url(#dg)" />
@@ -174,22 +169,19 @@ function DotGrid({ cam }) {
   );
 }
 
-// ─────────────── Zoom Controls ───────────────
 function ZoomControls({ cam, zoomTo, onFit }) {
-  const btn = { width:34, height:34, borderRadius:8, border:"none", background:"rgba(255,255,255,0.07)", color:COLORS.white, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" };
   return (
-    <div style={{ position:"absolute", bottom:16, right:16, zIndex:100, display:"flex", gap:4, background:COLORS.surface, borderRadius:10, padding:4, boxShadow:"0 4px 20px rgba(0,0,0,0.4)", border:"1px solid rgba(255,255,255,0.08)" }}>
-      <button style={btn} onClick={() => zoomTo(cam.zoom*1.3)}><ZoomInIcon /></button>
-      <button style={btn} onClick={() => zoomTo(cam.zoom/1.3)}><ZoomOutIcon /></button>
-      <div style={{ padding:"0 8px", display:"flex", alignItems:"center", fontFamily:"'DM Sans',sans-serif", fontSize:11, fontWeight:700, color:COLORS.muted, minWidth:42, justifyContent:"center" }}>
+    <div style={{ position:"absolute", bottom:16, right:16, zIndex:100, display:"flex", gap:4, ...WIN98_STYLES.window, padding:4 }}>
+      <button style={WIN98_STYLES.button} onClick={() => zoomTo(cam.zoom*1.3)}>+</button>
+      <button style={WIN98_STYLES.button} onClick={() => zoomTo(cam.zoom/1.3)}>-</button>
+      <div style={{ padding:"0 8px", display:"flex", alignItems:"center", ...WIN98_STYLES.text, minWidth:42, justifyContent:"center" }}>
         {Math.round(cam.zoom*100)}%
       </div>
-      <button style={btn} onClick={onFit}><FitIcon /></button>
+      <button style={WIN98_STYLES.button} onClick={onFit}>Fit</button>
     </div>
   );
 }
 
-// ─────────────── Selection Box ───────────────
 function SelectionBox({ box }) {
   if (!box) return null;
   const x = Math.min(box.x1, box.x2), y = Math.min(box.y1, box.y2);
@@ -197,90 +189,71 @@ function SelectionBox({ box }) {
   return (
     <div style={{
       position:"absolute", left:x, top:y, width:w, height:h, zIndex:999,
-      border:"2px solid #3a86ff", background:"rgba(58,134,255,0.08)",
-      borderRadius:4, pointerEvents:"none",
+      border:"1px dotted #000", background:"transparent", pointerEvents:"none",
     }} />
   );
 }
 
-// ─────────────── Resize Handle ───────────────
-function ResizeHandle({ onResizeStart, color }) {
+function ResizeHandle({ onResizeStart }) {
   return (
     <div
       onMouseDown={onResizeStart}
       style={{
-        position:"absolute", right:-6, bottom:-6, width:18, height:18,
-        borderRadius:"50%", background: color || "#3a86ff",
-        border:"2.5px solid #fff", cursor:"se-resize", zIndex:20,
-        display:"flex", alignItems:"center", justifyContent:"center",
-        boxShadow:"0 2px 6px rgba(0,0,0,0.3)",
+        position:"absolute", right:2, bottom:2, width:12, height:12,
+        cursor:"se-resize", zIndex:20,
+        background: "repeating-linear-gradient(135deg, transparent, transparent 2px, #808080 2px, #808080 3px, #fff 3px, #fff 4px)"
       }}
-    >
-      <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
-        <path d="M1 7L7 1M4 7L7 4M7 7L7 7" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
-      </svg>
+    />
+  );
+}
+
+function Window({ title, color, onClose, children, style, onTitleDown, isSelected }) {
+  return (
+    <div style={{ ...WIN98_STYLES.window, display:"flex", flexDirection:"column", padding:2, position:"absolute", zIndex: isSelected ? 10 : 1, ...style }}>
+      <div onMouseDown={onTitleDown} style={{ ...WIN98_STYLES.titleBar(isSelected ? color : "#808080"), cursor: onTitleDown ? "grab" : "default" }}>
+        <span style={{overflow:"hidden", whiteSpace:"nowrap", textOverflow:"ellipsis", paddingLeft: 2}}>{title}</span>
+        {onClose && (
+          <button onClick={e=>{e.stopPropagation(); onClose();}} style={{ ...WIN98_STYLES.button, padding:"0 4px", marginLeft:4, fontWeight:"bold" }}>
+            X
+          </button>
+        )}
+      </div>
+      <div style={{ flex:1, display:"flex", flexDirection:"column", padding:4, background: "#c0c0c0" }}>
+        {children}
+      </div>
     </div>
   );
 }
 
-// ─────────────── Post-it Card (main canvas) ───────────────
 function PostItCard({ card, colorDef, selected, onMouseDown, onOpen, onDelete, onResizeStart, onUpdate }) {
   const doneCount = card.tasks?.filter(t=>t.done).length||0;
   const totalCount = card.tasks?.length||0;
-  const progress = totalCount>0 ? (doneCount/totalCount)*100 : 0;
-
   return (
-    <div
-      onMouseDown={onMouseDown}
-      style={{
-        position:"absolute", left:card.x, top:card.y, width:card.w||260, height:card.h||210,
-        background:colorDef.bg, borderLeft:`6px solid ${colorDef.border}`, borderRadius:8,
-        padding:"16px 18px", cursor:"grab", userSelect:"none",
-        boxShadow: selected
-          ? `0 0 0 2.5px #3a86ff, 0 8px 32px rgba(0,0,0,0.35)`
-          : "0 6px 28px rgba(0,0,0,0.28), 0 2px 6px rgba(0,0,0,0.14)",
-        fontFamily:"'Caveat',cursive", overflow:"hidden",
-        display:"flex", flexDirection:"column",
-      }}
-    >
-      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:8 }}>
-        <span style={{ fontSize:11, fontFamily:"'DM Sans',sans-serif", fontWeight:700, textTransform:"uppercase", letterSpacing:1, color:colorDef.border, opacity:0.8 }}>
-          {card.type==="project"?"📁 Projeto":"📋 Tarefas"}
-        </span>
-        <button onClick={e=>{e.stopPropagation();onDelete();}} style={{ background:"none", border:"none", cursor:"pointer", color:colorDef.text, opacity:0.4, padding:2, flexShrink:0 }}>
-          <TrashIcon size={13} />
-        </button>
-      </div>
+    <Window title={card.type==="project"?"Projeto: "+card.title:"Tarefas: "+card.title} color={colorDef.title} onClose={onDelete} onTitleDown={onMouseDown} isSelected={selected} style={{
+      left:card.x, top:card.y, width:card.w||260, height:card.h||210,
+    }}>
       <textarea
         value={card.title}
         onChange={e=>onUpdate?.({...card, title:e.target.value})}
         onMouseDown={e=>e.stopPropagation()}
-        style={{ fontSize:26, fontWeight:700, color:colorDef.text, lineHeight:1.2, flex:1, wordBreak:"break-word", background:"transparent", border:"none", outline:"none", resize:"none", fontFamily:"inherit", padding:0 }}
+        style={{ ...WIN98_STYLES.inset, ...WIN98_STYLES.text, fontSize:15, fontWeight:"bold", flex:1, resize:"none", padding:6, marginBottom:6, width: "100%", boxSizing: "border-box" }}
       />
       {totalCount>0 && (
-        <div style={{ marginBottom:10 }}>
-          <div style={{ height:5, background:colorDef.border+"33", borderRadius:3, overflow:"hidden" }}>
-            <div style={{ height:"100%", width:`${progress}%`, background:colorDef.border, borderRadius:3 }} />
-          </div>
-          <span style={{ fontSize:12, fontFamily:"'DM Sans',sans-serif", color:colorDef.text, opacity:0.6, marginTop:3, display:"block" }}>
-            {doneCount}/{totalCount} concluídas
-          </span>
+        <div style={{ marginBottom:6, ...WIN98_STYLES.text }}>
+          Concluído: {doneCount}/{totalCount}
         </div>
       )}
-      <button onClick={e=>{e.stopPropagation();onOpen();}} style={{
-        display:"flex", alignItems:"center", gap:6, background:colorDef.border+"22",
-        border:`1px solid ${colorDef.border}44`, borderRadius:6, padding:"7px 10px",
-        cursor:"pointer", color:colorDef.text, fontFamily:"'DM Sans',sans-serif", fontSize:12, fontWeight:600, justifyContent:"center",
-      }}>
-        <ExpandIcon size={12} /> Abrir
-      </button>
-      <ResizeHandle onResizeStart={onResizeStart} color={colorDef.border} />
-    </div>
+      <div style={{ display:"flex", gap:4 }}>
+        <button onClick={e=>{e.stopPropagation();onOpen();}} style={{...WIN98_STYLES.button, flex:1, fontWeight: "bold"}}>
+          Abrir
+        </button>
+      </div>
+      <ResizeHandle onResizeStart={onResizeStart} />
+    </Window>
   );
 }
 
-// ─────────────── Connection SVG ───────────────
-function ConnectionLine({ from, to, tasks, color, isSelected, onSelect, onDelete, onRedirectStart }) {
+function ConnectionLine({ from, to, tasks, isSelected, onSelect, onDelete, onRedirectStart }) {
   const t1 = tasks.find(t=>t.id===from), t2 = tasks.find(t=>t.id===to);
   if (!t1||!t2) return null;
   const t1x = t1.x + (t1.w||240)/2, t1y = t1.y + (t1.h||130)/2;
@@ -289,14 +262,12 @@ function ConnectionLine({ from, to, tasks, color, isSelected, onSelect, onDelete
   
   let x1, y1, x2, y2, cx1, cy1, cx2, cy2;
   if (Math.abs(dx) > Math.abs(dy)) {
-    // Horizontal connection
     if (dx > 0) { x1 = t1.x + (t1.w||240); y1 = t1y; x2 = t2.x; y2 = t2y; }
     else { x1 = t1.x; y1 = t1y; x2 = t2.x + (t2.w||240); y2 = t2y; }
     const cDist = Math.max(Math.abs(x2 - x1) / 2, 40);
     cx1 = x1 + (dx > 0 ? cDist : -cDist); cy1 = y1;
     cx2 = x2 + (dx > 0 ? -cDist : cDist); cy2 = y2;
   } else {
-    // Vertical connection
     if (dy > 0) { x1 = t1x; y1 = t1.y + (t1.h||130); x2 = t2x; y2 = t2.y; }
     else { x1 = t1x; y1 = t1.y; x2 = t2x; y2 = t2.y + (t2.h||130); }
     const cDist = Math.max(Math.abs(y2 - y1) / 2, 40);
@@ -306,6 +277,7 @@ function ConnectionLine({ from, to, tasks, color, isSelected, onSelect, onDelete
 
   const mx = 0.125*x1 + 0.375*cx1 + 0.375*cx2 + 0.125*x2;
   const my = 0.125*y1 + 0.375*cy1 + 0.375*cy2 + 0.125*y2;
+  const color = "#000";
 
   return (
     <g>
@@ -319,27 +291,26 @@ function ConnectionLine({ from, to, tasks, color, isSelected, onSelect, onDelete
       {/* Visible Line */}
       <path
         d={`M${x1} ${y1} C${cx1} ${cy1},${cx2} ${cy2},${x2} ${y2}`}
-        stroke={isSelected ? "#3a86ff" : color} strokeWidth={isSelected ? 3.5 : 2.5}
-        fill="none" strokeDasharray={isSelected ? "none" : "7 5"}
-        opacity={isSelected ? 1 : 0.5}
-        style={{ pointerEvents:"none" }}
+        stroke={isSelected ? "#fff" : color} strokeWidth={2}
+        fill="none"
+        style={{ pointerEvents:"none", filter: isSelected ? "drop-shadow(1px 1px 0 #000)" : "none" }}
       />
       {/* Target Arrow / Dot */}
-      <circle cx={x2} cy={y2} r="5" fill={isSelected ? "#3a86ff" : color} opacity={isSelected ? 1 : 0.6} style={{ pointerEvents:"none" }}/>
+      <rect x={x2-4} y={y2-4} width="8" height="8" fill={isSelected ? "#fff" : color} stroke={isSelected?"#000":"none"} style={{ pointerEvents:"none" }}/>
 
       {isSelected && (
         <>
           <foreignObject x={mx-14} y={my-14} width="28" height="28" style={{ pointerEvents:"auto" }}>
             <button
               onMouseDown={(e)=>{e.stopPropagation(); e.preventDefault(); onDelete();}}
-              style={{ width:28, height:28, borderRadius:"50%", background:"#e94560", border:"2px solid #fff", display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", cursor:"pointer", padding:0, boxShadow:"0 2px 8px rgba(0,0,0,0.3)" }}
+              style={{ ...WIN98_STYLES.button, width:28, height:28, fontWeight:"bold" }}
             >
-              <TrashIcon size={14}/>
+              X
             </button>
           </foreignObject>
           {/* Redirect Handle */}
-          <circle
-            cx={x2} cy={y2} r="10" fill="#3a86ff" stroke="#fff" strokeWidth="3"
+          <rect
+            x={x2-6} y={y2-6} width="12" height="12" fill="#fff" stroke="#000" strokeWidth="1"
             style={{ cursor:"grab", pointerEvents:"auto" }}
             onMouseDown={(e)=>{e.stopPropagation(); e.preventDefault(); onRedirectStart(e);}}
           />
@@ -349,160 +320,145 @@ function ConnectionLine({ from, to, tasks, color, isSelected, onSelect, onDelete
   );
 }
 
-function ConnectionHandle({ side, onConnStart, color }) {
+function ConnectionHandle({ side, onConnStart }) {
   const styles = {
-    top: { top: -10, left: "50%", transform: "translateX(-50%)" },
-    bottom: { bottom: -10, left: "50%", transform: "translateX(-50%)" },
-    left: { left: -10, top: "50%", transform: "translateY(-50%)" },
-    right: { right: -10, top: "50%", transform: "translateY(-50%)" },
+    top: { top: -6, left: "50%", transform: "translateX(-50%)" },
+    bottom: { bottom: -6, left: "50%", transform: "translateX(-50%)" },
+    left: { left: -6, top: "50%", transform: "translateY(-50%)" },
+    right: { right: -6, top: "50%", transform: "translateY(-50%)" },
   };
   return (
     <div
       onMouseDown={(e)=>onConnStart(e)}
       style={{
         position:"absolute", ...styles[side],
-        width:20, height:20, borderRadius:"50%", background:color,
-        border:"3.5px solid #fff", cursor:"crosshair", zIndex:20,
-        boxShadow:"0 2px 6px rgba(0,0,0,0.25)"
+        width:10, height:10, background:"#000", border:"1px solid #fff", cursor:"crosshair", zIndex:20
       }}
     />
   );
 }
 
-// ─────────────── Task Post-it (big) ───────────────
 function TaskPostIt({ task, colorDef, selected, onMouseDown, onToggle, onConnStart, onResizeStart, onChangeTitle }) {
   return (
-    <div onMouseDown={onMouseDown} style={{
-      position:"absolute", left:task.x, top:task.y,
-      width:task.w||240, height:task.h||130,
-      background:colorDef.bg, borderLeft:`5px solid ${colorDef.border}`,
-      borderRadius:7, padding:"14px 16px", cursor:"grab",
-      boxShadow: selected
-        ? `0 0 0 2.5px #3a86ff, 0 6px 24px rgba(0,0,0,0.25)`
-        : "0 4px 18px rgba(0,0,0,0.22)",
-      userSelect:"none", fontFamily:"'Caveat',cursive",
-      display:"flex", flexDirection:"column", overflow:"hidden",
+    <Window title={task.title || "Tarefa"} color={colorDef.title} onTitleDown={onMouseDown} isSelected={selected} style={{
+      left:task.x, top:task.y, width:task.w||240, height:task.h||130,
     }}>
-      <div style={{ display:"flex", alignItems:"flex-start", gap:12, flex:1 }}>
-        <button onClick={e=>{e.stopPropagation();onToggle();}} style={{
-          width:28, height:28, borderRadius:6, flexShrink:0, marginTop:2,
-          border:`2.5px solid ${colorDef.border}`,
-          background:task.done?colorDef.border:"transparent",
-          cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", padding:0,
-        }}>
-          {task.done && <CheckIcon size={15}/>}
+      <div style={{ display:"flex", gap:6, flex:1, marginBottom:4, background: "#c0c0c0" }}>
+        <button onClick={e=>{e.stopPropagation();onToggle();}} style={{...WIN98_STYLES.inset, width:20, height:20, flexShrink:0, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", padding:0}}>
+          {task.done && <span style={{fontWeight:"bold", fontSize:14}}>✓</span>}
         </button>
         <textarea
           value={task.title}
           onChange={e=>onChangeTitle?.(e.target.value)}
           onMouseDown={e=>e.stopPropagation()}
-          style={{ fontSize:22, color:colorDef.text, lineHeight:1.25, fontWeight:700, textDecoration:task.done?"line-through":"none", opacity:task.done?0.45:1, wordBreak:"break-word", background:"transparent", border:"none", outline:"none", resize:"none", fontFamily:"inherit", flex:1, padding:0, height:"100%" }}
+          style={{ ...WIN98_STYLES.inset, ...WIN98_STYLES.text, textDecoration:task.done?"line-through":"none", opacity:task.done?0.6:1, flex:1, resize:"none", padding:4 }}
         />
       </div>
       {["top","bottom","left","right"].map(side => (
-        <ConnectionHandle key={side} side={side} onConnStart={(e)=>{e.stopPropagation(); e.preventDefault(); onConnStart(task.id,e,side);}} color={colorDef.border} />
+        <ConnectionHandle key={side} side={side} onConnStart={(e)=>{e.stopPropagation(); e.preventDefault(); onConnStart(task.id,e,side);}} />
       ))}
-      <ResizeHandle onResizeStart={onResizeStart} color={colorDef.border}/>
-    </div>
+      <ResizeHandle onResizeStart={onResizeStart} />
+    </Window>
   );
 }
 
-// ─────────────── Board View ───────────────
 function BoardView({ card, onToggleTask, onChangeTaskTitle }) {
   const todo = card.tasks.filter(t=>!t.done), done = card.tasks.filter(t=>t.done);
-  const col = { flex:1, minWidth:220, background:"rgba(255,255,255,0.05)", borderRadius:10, padding:14 };
   return (
-    <div style={{ display:"flex", gap:20, padding:"20px 0" }}>
+    <div style={{ display:"flex", gap:20, padding:"20px", background:COLORS.bg, minHeight:"100%", alignItems: "flex-start" }}>
       {[["A Fazer", todo, false], ["Concluído", done, true]].map(([label, items, isDone]) => (
-        <div key={label} style={col}>
-          <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, fontWeight:700, textTransform:"uppercase", letterSpacing:1, marginBottom:14, color:COLORS.muted }}>{label} ({items.length})</div>
+        <Window key={label} title={`${label} (${items.length})`} color="#000080" style={{ flex:1, minWidth:220, position:"relative" }} isSelected={true}>
           {items.map(t=>{
-            const tc = CARD_COLORS[t.color||0];
             return (
               <div key={t.id} onClick={()=>onToggleTask(t.id)} style={{
-                background:tc.bg, borderLeft:`5px solid ${tc.border}`, borderRadius:7, padding:"13px 15px",
-                marginBottom:10, fontFamily:"'Caveat',cursive", fontSize:22, color:tc.text,
-                cursor:"pointer", display:"flex", alignItems:"center", gap:10,
-                opacity:isDone?0.55:1, textDecoration:isDone?"line-through":"none",
-                boxShadow:"0 2px 8px rgba(0,0,0,0.1)",
+                display:"flex", alignItems:"center", gap:10, marginBottom:8, cursor:"pointer",
+                opacity:isDone?0.6:1
               }}>
-                <div style={{ width:22, height:22, borderRadius:5, border:`2.5px solid ${tc.border}`, flexShrink:0, background:isDone?tc.border:"transparent", display:"flex", alignItems:"center", justifyContent:"center" }}>
-                  {isDone&&<CheckIcon size={12}/>}
+                <div style={{...WIN98_STYLES.inset, width:16, height:16, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0}}>
+                  {isDone&&<span style={{fontWeight:"bold", fontSize:12}}>✓</span>}
                 </div>
                 <input
                   value={t.title}
                   onChange={e=>onChangeTaskTitle?.(t.id, e.target.value)}
                   onClick={e=>e.stopPropagation()}
-                  style={{ background:"transparent", border:"none", outline:"none", fontSize:22, fontFamily:"inherit", color:"inherit", flex:1, textDecoration:isDone?"line-through":"none", opacity:isDone?0.55:1 }}
+                  style={{ ...WIN98_STYLES.text, background:"transparent", border:"1px dotted transparent", outline:"none", flex:1, textDecoration:isDone?"line-through":"none", padding:2 }}
                 />
               </div>
             );
           })}
-        </div>
+        </Window>
       ))}
     </div>
   );
 }
 
-// ─────────────── Modals ───────────────
-function Modal({ onClose, children }) {
+function ModalDialog({ onClose, title, children }) {
   return (
-    <div onClick={onClose} style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.6)", backdropFilter:"blur(4px)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:1000 }}>
-      <div onClick={e=>e.stopPropagation()} style={{ background:COLORS.surface, borderRadius:14, padding:28, width:370, boxShadow:"0 20px 60px rgba(0,0,0,0.5)" }}>
-        {children}
+    <div onClick={onClose} style={{ position:"fixed", inset:0, background:"transparent", display:"flex", alignItems:"center", justifyContent:"center", zIndex:1000 }}>
+      <div onClick={e=>e.stopPropagation()} style={{ width: 370, position: "relative" }}>
+        <Window title={title} onClose={onClose} color="#000080" isSelected={true} style={{position:"relative"}}>
+          <div style={{ padding: 12 }}>
+            {children}
+          </div>
+        </Window>
       </div>
     </div>
   );
 }
 
-// ─────────────── Add Card Modal ───────────────
 function AddCardModal({ onAdd, onClose }) {
   const [title,setTitle]=useState(""), [type,setType]=useState("tasks"), [color,setColor]=useState(0);
   return (
-    <Modal onClose={onClose}>
-      <h3 style={{ fontFamily:"'DM Sans',sans-serif", fontSize:18, fontWeight:700, color:COLORS.white, margin:"0 0 20px" }}>Novo Card</h3>
-      <input autoFocus value={title} onChange={e=>setTitle(e.target.value)} placeholder="Nome do card..."
+    <ModalDialog onClose={onClose} title="Novo Card">
+      <div style={{...WIN98_STYLES.text, marginBottom: 4}}>Nome:</div>
+      <input autoFocus value={title} onChange={e=>setTitle(e.target.value)}
         onKeyDown={e=>{if(e.key==="Enter"&&title.trim())onAdd({title:title.trim(),type,color});}}
-        style={{ width:"100%", padding:"10px 14px", background:"rgba(255,255,255,0.08)", border:"1px solid rgba(255,255,255,0.15)", borderRadius:6, color:COLORS.white, fontSize:15, fontFamily:"'DM Sans',sans-serif", outline:"none", marginBottom:16, boxSizing:"border-box" }}
+        style={{ ...WIN98_STYLES.inset, ...WIN98_STYLES.text, width:"100%", padding:"4px", outline:"none", marginBottom:16, boxSizing:"border-box" }}
       />
       <div style={{ display:"flex", gap:8, marginBottom:16 }}>
         {["tasks","project"].map(t=>(
-          <button key={t} onClick={()=>setType(t)} style={{ flex:1, padding:"8px 0", borderRadius:6, border:type===t?`2px solid ${COLORS.accent}`:"2px solid rgba(255,255,255,0.1)", background:type===t?COLORS.accentSoft:"transparent", color:COLORS.white, fontFamily:"'DM Sans',sans-serif", fontSize:13, fontW:600, cursor:"pointer" }}>
+          <button key={t} onClick={()=>setType(t)} style={type===t?WIN98_STYLES.buttonActive:WIN98_STYLES.button}>
             {t==="tasks"?"📋 Tarefas":"📁 Projeto"}
           </button>
         ))}
       </div>
+      <div style={{...WIN98_STYLES.text, marginBottom: 4}}>Cor:</div>
       <div style={{ display:"flex", gap:6, marginBottom:20 }}>
         {CARD_COLORS.map((c,i)=>(
-          <button key={i} onClick={()=>setColor(i)} style={{ width:34, height:34, borderRadius:"50%", background:c.bg, border:color===i?`3px solid ${c.border}`:"3px solid transparent", cursor:"pointer", boxShadow:color===i?`0 0 0 2px ${COLORS.surface},0 0 0 4px ${c.border}`:"none" }}/>
+          <button key={i} onClick={()=>setColor(i)} style={{ width:24, height:24, background:c.title, border:color===i?`2px solid #000`:"2px solid transparent", cursor:"pointer", boxShadow:color===i?`0 0 0 1px #fff inset`:"none" }}/>
         ))}
       </div>
-      <button onClick={()=>title.trim()&&onAdd({title:title.trim(),type,color})} disabled={!title.trim()} style={{ width:"100%", padding:"10px 0", borderRadius:6, border:"none", background:title.trim()?COLORS.accent:"rgba(255,255,255,0.1)", color:COLORS.white, fontFamily:"'DM Sans',sans-serif", fontSize:14, fontWeight:700, cursor:title.trim()?"pointer":"default" }}>Criar</button>
-    </Modal>
+      <div style={{display:"flex", justifyContent:"flex-end", gap:8}}>
+        <button onClick={()=>title.trim()&&onAdd({title:title.trim(),type,color})} disabled={!title.trim()} style={{ ...WIN98_STYLES.button, fontWeight:"bold" }}>OK</button>
+        <button onClick={onClose} style={WIN98_STYLES.button}>Cancelar</button>
+      </div>
+    </ModalDialog>
   );
 }
 
-// ─────────────── Add Task Modal ───────────────
 function AddTaskModal({ onAdd, onClose }) {
   const [title,setTitle]=useState(""), [color,setColor]=useState(0);
   return (
-    <Modal onClose={onClose}>
-      <h3 style={{ fontFamily:"'DM Sans',sans-serif", fontSize:18, fontWeight:700, color:COLORS.white, margin:"0 0 20px" }}>Nova Tarefa</h3>
-      <input autoFocus value={title} onChange={e=>setTitle(e.target.value)} placeholder="Nome da tarefa..."
+    <ModalDialog onClose={onClose} title="Nova Tarefa">
+      <div style={{...WIN98_STYLES.text, marginBottom: 4}}>Nome da Tarefa:</div>
+      <input autoFocus value={title} onChange={e=>setTitle(e.target.value)}
         onKeyDown={e=>{if(e.key==="Enter"&&title.trim())onAdd({title:title.trim(),color});}}
-        style={{ width:"100%", padding:"10px 14px", background:"rgba(255,255,255,0.08)", border:"1px solid rgba(255,255,255,0.15)", borderRadius:6, color:COLORS.white, fontSize:15, fontFamily:"'DM Sans',sans-serif", outline:"none", marginBottom:16, boxSizing:"border-box" }}
+        style={{ ...WIN98_STYLES.inset, ...WIN98_STYLES.text, width:"100%", padding:"4px", outline:"none", marginBottom:16, boxSizing:"border-box" }}
       />
+      <div style={{...WIN98_STYLES.text, marginBottom: 4}}>Cor:</div>
       <div style={{ display:"flex", gap:6, marginBottom:20 }}>
         {CARD_COLORS.map((c,i)=>(
-          <button key={i} onClick={()=>setColor(i)} style={{ width:30, height:30, borderRadius:"50%", background:c.bg, border:color===i?`3px solid ${c.border}`:"3px solid transparent", cursor:"pointer" }}/>
+          <button key={i} onClick={()=>setColor(i)} style={{ width:24, height:24, background:c.title, border:color===i?`2px solid #000`:"2px solid transparent", cursor:"pointer", boxShadow:color===i?`0 0 0 1px #fff inset`:"none" }}/>
         ))}
       </div>
-      <button onClick={()=>title.trim()&&onAdd({title:title.trim(),color})} disabled={!title.trim()} style={{ width:"100%", padding:"10px 0", borderRadius:6, border:"none", background:title.trim()?COLORS.accent:"rgba(255,255,255,0.1)", color:COLORS.white, fontFamily:"'DM Sans',sans-serif", fontSize:14, fontWeight:700, cursor:title.trim()?"pointer":"default" }}>Adicionar</button>
-    </Modal>
+      <div style={{display:"flex", justifyContent:"flex-end", gap:8}}>
+        <button onClick={()=>title.trim()&&onAdd({title:title.trim(),color})} disabled={!title.trim()} style={{ ...WIN98_STYLES.button, fontWeight:"bold" }}>OK</button>
+        <button onClick={onClose} style={WIN98_STYLES.button}>Cancelar</button>
+      </div>
+    </ModalDialog>
   );
 }
 
-// ─────────────── rectHit helper ───────────────
 function rectHit(item, box) {
   const ix=item.x, iy=item.y, iw=item.w||260, ih=item.h||200;
   const bx=Math.min(box.x1,box.x2), by=Math.min(box.y1,box.y2);
@@ -510,7 +466,6 @@ function rectHit(item, box) {
   return ix<bx+bw && ix+iw>bx && iy<by+bh && iy+ih>by;
 }
 
-// ─────────────── Project Inner Canvas ───────────────
 function ProjectView({ card, colorDef, onBack, onUpdate }) {
   const [viewMode,setViewMode]=useState("canvas");
   const [showAddTask,setShowAddTask]=useState(false);
@@ -521,23 +476,20 @@ function ProjectView({ card, colorDef, onBack, onUpdate }) {
 
   const canvasRef=useRef(null);
   const drawConnRef=useRef(null);
-  const dragRef=useRef(null);      // dragging items
-  const resizeRef=useRef(null);    // resizing
-  const selRef=useRef(null);       // selection box draw
+  const dragRef=useRef(null);
+  const resizeRef=useRef(null);
+  const selRef=useRef(null);
   const { cam, zoomTo, fitToContent } = useInfiniteCanvas(canvasRef);
 
-  // ── fit on mount ──
   useEffect(()=>{
     if(card.tasks.length>0) setTimeout(()=>fitToContent(card.tasks.map(t=>({x:t.x,y:t.y,w:t.w||240,h:t.h||130}))),60);
   },[]);
 
-  // ── pointer world coords ──
   const toWorld=(e)=>{
     const r=canvasRef.current.getBoundingClientRect();
     return { x:(e.clientX-r.left-cam.x)/cam.zoom, y:(e.clientY-r.top-cam.y)/cam.zoom };
   };
 
-  // ── canvas background mousedown → start selection box ──
   const onCanvasBgDown=(e)=>{
     if(e.button!==0||e.shiftKey) return;
     const w=toWorld(e);
@@ -547,7 +499,6 @@ function ProjectView({ card, colorDef, onBack, onUpdate }) {
     setSelectedConn(null);
   };
 
-  // ── item drag start ──
   const onItemDown=(id,e)=>{
     if(e.button!==0||e.shiftKey) return;
     e.stopPropagation();
@@ -566,14 +517,12 @@ function ProjectView({ card, colorDef, onBack, onUpdate }) {
     e.preventDefault();
   };
 
-  // ── resize start ──
   const onResizeStart=(id,e)=>{
     e.stopPropagation(); e.preventDefault();
     const task=card.tasks.find(t=>t.id===id);
     resizeRef.current={ id, startW:task.w||240, startH:task.h||130, startX:e.clientX, startY:e.clientY };
   };
 
-  // ── global mouse move ──
   const onMove=useCallback((e)=>{
     if(selRef.current){
       const w=toWorld(e);
@@ -658,29 +607,24 @@ function ProjectView({ card, colorDef, onBack, onUpdate }) {
 
   return (
     <div style={{ height:"100%", display:"flex", flexDirection:"column" }}>
-      {/* toolbar */}
-      <div style={{ display:"flex", alignItems:"center", gap:8, padding:"12px 20px", borderBottom:"1px solid rgba(255,255,255,0.08)", background:COLORS.surface, flexShrink:0 }}>
-        <button onClick={onBack} style={{ display:"flex", alignItems:"center", gap:6, background:"none", border:"none", color:COLORS.white, cursor:"pointer", fontFamily:"'DM Sans',sans-serif", fontSize:14, fontWeight:600, padding:"6px 10px", borderRadius:6 }}>
-          <ArrowBack size={18}/> Voltar
-        </button>
-        <div style={{ flex:1, textAlign:"center", fontFamily:"'Caveat',cursive", fontSize:26, color:colorDef.border, fontWeight:700 }}>{card.title}</div>
+      <div style={{ display:"flex", alignItems:"center", gap:8, padding:"4px", borderBottom:"2px solid #000", ...WIN98_STYLES.window, boxShadow:"none", zIndex:10 }}>
+        <button onClick={onBack} style={{...WIN98_STYLES.button, fontWeight: "bold"}}>Voltar</button>
+        <div style={{ flex:1, textAlign:"center", ...WIN98_STYLES.text, fontWeight:"bold" }}>{card.title}</div>
         <div style={{ display:"flex", gap:4 }}>
           {["canvas","board"].map(m=>(
-            <button key={m} onClick={()=>setViewMode(m)} style={{ display:"flex", alignItems:"center", gap:5, padding:"6px 12px", borderRadius:6, border:"none", background:viewMode===m?"rgba(255,255,255,0.12)":"transparent", color:viewMode===m?COLORS.white:COLORS.muted, cursor:"pointer", fontFamily:"'DM Sans',sans-serif", fontSize:12, fontWeight:600 }}>
-              {m==="canvas"?<MapIcon/>:<BoardIcon/>} {m==="canvas"?"Mapa":"Board"}
+            <button key={m} onClick={()=>setViewMode(m)} style={viewMode===m?WIN98_STYLES.buttonActive:WIN98_STYLES.button}>
+              {m==="canvas"?"Mapa":"Board"}
             </button>
           ))}
         </div>
-
-        <button onClick={()=>setShowAddTask(true)} style={{ display:"flex", alignItems:"center", gap:5, padding:"6px 12px", borderRadius:6, border:"none", background:COLORS.accent, color:COLORS.white, cursor:"pointer", fontFamily:"'DM Sans',sans-serif", fontSize:12, fontWeight:700 }}>
-          <PlusIcon size={14}/> Tarefa
+        <button onClick={()=>setShowAddTask(true)} style={{...WIN98_STYLES.button, fontWeight:"bold"}}>
+          Novo Item
         </button>
       </div>
 
       {viewMode==="canvas" ? (
         <div ref={canvasRef} onMouseDown={onCanvasBgDown} style={{ flex:1, position:"relative", overflow:"hidden", background:COLORS.bg, cursor:"default" }}>
           <DotGrid cam={cam}/>
-          {/* world layer */}
           <div style={{ position:"absolute", left:0, top:0, transform:`translate(${cam.x}px,${cam.y}px) scale(${cam.zoom})`, transformOrigin:"0 0" }}>
             <svg style={{ position:"absolute", left:0, top:0, width:9999, height:9999, pointerEvents:"none", zIndex:1 }}>
               {(card.connections||[]).map(([f,t],i)=>(
@@ -731,8 +675,8 @@ function ProjectView({ card, colorDef, onBack, onUpdate }) {
                 }
                 return (
                   <g>
-                    <path d={`M${x1} ${y1} C${cx1} ${cy1},${cx2} ${cy2},${x2} ${y2}`} stroke={colorDef.border} strokeWidth="2.5" fill="none" strokeDasharray="7 5" opacity="0.8"/>
-                    <circle cx={x2} cy={y2} r="5" fill={colorDef.border} opacity="0.8"/>
+                    <path d={`M${x1} ${y1} C${cx1} ${cy1},${cx2} ${cy2},${x2} ${y2}`} stroke="#000" strokeWidth="2" fill="none" />
+                    <rect x={x2-4} y={y2-4} width="8" height="8" fill="#000" style={{ pointerEvents:"none" }}/>
                   </g>
                 );
               })()}
@@ -750,7 +694,6 @@ function ProjectView({ card, colorDef, onBack, onUpdate }) {
               );
             })}
           </div>
-          {/* selection box in screen space */}
           {selBox && (() => {
             const sx=selBox.x1*cam.zoom+cam.x, sy=selBox.y1*cam.zoom+cam.y;
             const ex=selBox.x2*cam.zoom+cam.x, ey=selBox.y2*cam.zoom+cam.y;
@@ -759,7 +702,7 @@ function ProjectView({ card, colorDef, onBack, onUpdate }) {
           <ZoomControls cam={cam} zoomTo={zoomTo} onFit={()=>fitToContent(card.tasks.map(t=>({x:t.x,y:t.y,w:t.w||240,h:t.h||130})))}/>
         </div>
       ) : (
-        <div style={{ flex:1, overflow:"auto", padding:"0 24px" }}>
+        <div style={{ flex:1, overflow:"auto", background:COLORS.bg }}>
           <BoardView card={card} onToggleTask={toggleTask} onChangeTaskTitle={(id, title)=>onUpdate({...card,tasks:card.tasks.map(t=>t.id===id?{...t,title}:t)})}/>
         </div>
       )}
@@ -768,7 +711,6 @@ function ProjectView({ card, colorDef, onBack, onUpdate }) {
   );
 }
 
-// ─────────────── Main App ───────────────
 export default function App() {
   const [data,setData]=useState(INITIAL_DATA);
   const [openCardId,setOpenCardId]=useState(null);
@@ -876,70 +818,38 @@ export default function App() {
   const openCard=openCardId?data.cards.find(c=>c.id===openCardId):null;
 
   if(openCard){
-    return (
-      <div style={{ width:"100%", height:"100vh", background:COLORS.bg, overflow:"hidden" }}>
-        <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
-        <ProjectView card={openCard} colorDef={CARD_COLORS[openCard.color]} onBack={()=>setOpenCardId(null)} onUpdate={updateCard}/>
-      </div>
-    );
+    const colorDef=CARD_COLORS[openCard.color||0];
+    return <ProjectView card={openCard} colorDef={colorDef} onBack={()=>setOpenCardId(null)} onUpdate={updateCard}/>;
   }
 
   return (
-    <div style={{ width:"100%", height:"100vh", background:COLORS.bg, display:"flex", flexDirection:"column", overflow:"hidden" }}>
-      <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
-
-      {/* Header */}
-      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"14px 24px", borderBottom:"1px solid rgba(255,255,255,0.06)", background:COLORS.surface, flexShrink:0, zIndex:10 }}>
-        <div style={{ display:"flex", alignItems:"center", gap:12 }}>
-          <span style={{ fontSize:24 }}>🗂️</span>
-          <span style={{ fontFamily:"'Caveat',cursive", fontSize:28, fontWeight:700, color:COLORS.white }}>Meu Mural</span>
-        </div>
-        <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-          {selected.size>0&&(
-            <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:COLORS.muted, background:"rgba(58,134,255,0.15)", border:"1px solid rgba(58,134,255,0.3)", borderRadius:6, padding:"4px 10px" }}>
-              {selected.size} selecionado{selected.size>1?"s":""}
-            </span>
-          )}
-          <button onClick={()=>setShowAddCard(true)} style={{ display:"flex", alignItems:"center", gap:6, padding:"8px 18px", borderRadius:8, border:"none", background:COLORS.accent, color:COLORS.white, cursor:"pointer", fontFamily:"'DM Sans',sans-serif", fontSize:13, fontWeight:700, boxShadow:"0 2px 12px rgba(233,69,96,0.3)" }}>
-            <PlusIcon size={16}/> Novo Card
-          </button>
-        </div>
+    <div style={{ height:"100vh", display:"flex", flexDirection:"column", fontFamily: WIN98_STYLES.text.fontFamily }}>
+      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"4px", ...WIN98_STYLES.window, boxShadow:"none", borderBottom:"2px solid #000", zIndex:10 }}>
+        <div style={{ ...WIN98_STYLES.text, fontWeight:"bold", marginLeft:8 }}>Mural OS 98</div>
+        <button onClick={()=>setShowAddCard(true)} style={{...WIN98_STYLES.button, fontWeight:"bold"}}>Novo Card</button>
       </div>
 
-      {/* Canvas */}
-      <div ref={canvasRef} onMouseDown={onCanvasBgDown} style={{ flex:1, position:"relative", overflow:"hidden", background:COLORS.bg }}>
+      <div ref={canvasRef} onMouseDown={onCanvasBgDown} style={{ flex:1, position:"relative", overflow:"hidden", background:COLORS.bg, cursor:"default" }}>
         <DotGrid cam={cam}/>
-
         <div style={{ position:"absolute", left:0, top:0, transform:`translate(${cam.x}px,${cam.y}px) scale(${cam.zoom})`, transformOrigin:"0 0" }}>
-          {data.cards.map(card=>(
-            <PostItCard key={card.id} card={card} colorDef={CARD_COLORS[card.color]} selected={selected.has(card.id)}
-              onMouseDown={e=>onCardDown(card.id,e)}
-              onOpen={()=>setOpenCardId(card.id)}
-              onDelete={()=>deleteCard(card.id)}
-              onResizeStart={e=>onResizeStart(card.id,e)}
-              onUpdate={(newCard)=>updateCard(newCard)}
-            />
-          ))}
+          {data.cards.map(card=>{
+            const tc=CARD_COLORS[card.color||0];
+            return (
+              <PostItCard key={card.id} card={card} colorDef={tc} selected={selected.has(card.id)}
+                onMouseDown={e=>onCardDown(card.id,e)}
+                onOpen={()=>setOpenCardId(card.id)} onDelete={()=>deleteCard(card.id)}
+                onResizeStart={e=>onResizeStart(card.id,e)} onUpdate={updateCard}
+              />
+            );
+          })}
         </div>
-
-        {/* selection box screen space */}
-        {selBox && (()=>{
+        {selBox && (() => {
           const sx=selBox.x1*cam.zoom+cam.x, sy=selBox.y1*cam.zoom+cam.y;
           const ex=selBox.x2*cam.zoom+cam.x, ey=selBox.y2*cam.zoom+cam.y;
           return <SelectionBox box={{x1:sx,y1:sy,x2:ex,y2:ey}}/>;
         })()}
-
-        {data.cards.length===0&&(
-          <div style={{ position:"absolute", inset:0, display:"flex", alignItems:"center", justifyContent:"center", flexDirection:"column", gap:12, color:COLORS.muted, zIndex:5, pointerEvents:"none" }}>
-            <span style={{ fontSize:48 }}>📌</span>
-            <span style={{ fontFamily:"'Caveat',cursive", fontSize:24 }}>Seu mural está vazio!</span>
-            <span style={{ fontSize:14 }}>Clique em "Novo Card" para começar</span>
-          </div>
-        )}
-
         <ZoomControls cam={cam} zoomTo={zoomTo} onFit={()=>fitToContent(data.cards.map(c=>({x:c.x,y:c.y,w:c.w||260,h:c.h||210})))}/>
       </div>
-
       {showAddCard&&<AddCardModal onAdd={addCard} onClose={()=>setShowAddCard(false)}/>}
     </div>
   );
